@@ -39,61 +39,61 @@
    <button type="button" data-catalog="arc" aria-controls="catalog-arc" aria-pressed="false">ARC · Architecture<small>建筑</small></button>
   </div>
   <nav id="catalog-st" aria-label="ST systems">
-   <details class="catalog-group"><summary>Foundations / 基础</summary>
-    <button type="button" disabled title="Data not supplied / 尚无对应数据">Piles / 桩 · Not supplied / 待提供</button>
-    <button type="button" disabled title="Data not supplied / 尚无对应数据">Pad / Strip / Raft footings / 独立、条形与筏板基础 · Not supplied / 待提供</button>
-   </details>
-   <details class="catalog-group"><summary>Floors / 楼面</summary>
-    <button type="button" data-catalog-filter="ground_slab upper_slab slabs" aria-pressed="false">Slabs / 楼板</button>
-    <button type="button" disabled title="Data not supplied / 尚无对应数据">Joists / Bearers / 楼面搁栅与主梁 · Not supplied / 待提供</button>
-    <button type="button" disabled title="Data not supplied / 尚无对应数据">Floor openings / 楼面洞口 · Not supplied / 待提供</button>
-   </details>
-   <details class="catalog-group"><summary>Walls / 墙体</summary>
-    <button type="button" data-catalog-filter="walls framing" aria-pressed="false">Walls & framing / 墙体与墙架</button>
-    <button type="button" data-catalog-filter="framing" aria-pressed="false" data-catalog-role="stud king_stud jack_stud">Posts / 柱</button>
-    <button type="button" data-catalog-filter="framing" aria-pressed="false" data-catalog-role="lintel head_trimmer">Lintels / Headers · 过梁与上横档</button>
-    <button type="button" data-detail-focus="wall">Bracing / 抗侧力</button>
-   </details>
-   <details class="catalog-group"><summary>Roofs / 屋盖</summary>
-    <button type="button" data-catalog-filter="trusses" aria-pressed="false">Trusses / 屋架</button>
-    <button type="button" disabled title="Data not supplied / 尚无对应数据">Rafters / Beams / 椽与屋面梁 · Not supplied / 待提供</button>
-    <button type="button" disabled title="Data not supplied / 尚无对应数据">Roof bracing / 屋面抗侧力 · Not supplied / 待提供</button>
-   </details>
-   <details class="catalog-group"><summary>Members / 构件</summary>
-    <button type="button" data-detail-focus="design">IDs / Sizes / Materials / Grades / Spans / 编号、尺寸、材料、等级与跨度</button>
-   </details>
-   <details class="catalog-group"><summary>Connections / 连接</summary>
-    <button type="button" data-detail-focus="fixing">Details / Fixings / Anchors / Hold-downs / 详图、固定与锚固</button>
-   </details>
-   <details class="catalog-group"><summary>Checks / 检查</summary>
-    <button type="button" data-detail-focus="supports">Load paths / Supports / 传力与支承</button>
-    <button type="button" data-detail-focus="results">Linked calculations / 关联计算</button>
-    <button type="button" disabled title="Data not supplied / 尚无对应数据">Clashes / 碰撞检查 · Not supplied / 待提供</button>
-   </details>
-   <details class="catalog-group"><summary>Outputs / 输出</summary>
-    <button type="button" data-detail-focus="sources">Drawings / Schedules / 图纸与构件、连接表</button>
-   </details>
+   <div class="catalog-group" role="group" aria-label="Foundations / 基础"><label class="toggle catalog-heading"><span>Foundations / 基础</span><input type="checkbox" data-catalog-parent></label><div class="catalog-items">
+    <label class="toggle catalog-item"><span>Piles / 桩 · Not supplied / 待提供</span><input type="checkbox" disabled title="Data not supplied / 尚无对应数据"></label>
+    <label class="toggle catalog-item"><span>Pad / Strip / Raft footings / 独立、条形与筏板基础 · Not supplied / 待提供</span><input type="checkbox" disabled title="Data not supplied / 尚无对应数据"></label>
+   </div></div>
+   <div class="catalog-group" role="group" aria-label="Floors / 楼面"><label class="toggle catalog-heading"><span>Floors / 楼面</span><input type="checkbox" data-catalog-parent></label><div class="catalog-items">
+    <label class="toggle catalog-item"><span>Slabs / 楼板</span><input type="checkbox" data-catalog-filter="ground_slab upper_slab slabs"></label>
+    <label class="toggle catalog-item"><span>Joists / Bearers / 楼面搁栅与主梁 · Not supplied / 待提供</span><input type="checkbox" disabled title="Data not supplied / 尚无对应数据"></label>
+    <label class="toggle catalog-item"><span>Floor openings / 楼面洞口 · Not supplied / 待提供</span><input type="checkbox" disabled title="Data not supplied / 尚无对应数据"></label>
+   </div></div>
+   <div class="catalog-group" role="group" aria-label="Walls / 墙体"><label class="toggle catalog-heading"><span>Walls / 墙体</span><input type="checkbox" data-catalog-parent></label><div class="catalog-items">
+    <label class="toggle catalog-item"><span>Walls & framing / 墙体与墙架</span><input type="checkbox" data-catalog-filter="walls framing"></label>
+    <label class="toggle catalog-item"><span>Posts / 柱</span><input type="checkbox" data-catalog-filter="framing"  data-catalog-role="stud king_stud jack_stud"></label>
+    <label class="toggle catalog-item"><span>Lintels / Headers · 过梁与上横档</span><input type="checkbox" data-catalog-filter="framing"  data-catalog-role="lintel head_trimmer"></label>
+    <label class="toggle catalog-item"><span>Bracing / 抗侧力</span><input type="checkbox" data-detail-toggle="wall"></label>
+   </div></div>
+   <div class="catalog-group" role="group" aria-label="Roofs / 屋盖"><label class="toggle catalog-heading"><span>Roofs / 屋盖</span><input type="checkbox" data-catalog-parent></label><div class="catalog-items">
+    <label class="toggle catalog-item"><span>Trusses / 屋架</span><input type="checkbox" data-catalog-filter="trusses"></label>
+    <label class="toggle catalog-item"><span>Rafters / Beams / 椽与屋面梁 · Not supplied / 待提供</span><input type="checkbox" disabled title="Data not supplied / 尚无对应数据"></label>
+    <label class="toggle catalog-item"><span>Roof bracing / 屋面抗侧力 · Not supplied / 待提供</span><input type="checkbox" disabled title="Data not supplied / 尚无对应数据"></label>
+   </div></div>
+   <div class="catalog-group" role="group" aria-label="Members / 构件"><label class="toggle catalog-heading"><span>Members / 构件</span><input type="checkbox" data-catalog-parent></label><div class="catalog-items">
+    <label class="toggle catalog-item"><span>IDs / Sizes / Materials / Grades / Spans / 编号、尺寸、材料、等级与跨度</span><input type="checkbox" data-detail-toggle="design"></label>
+   </div></div>
+   <div class="catalog-group" role="group" aria-label="Connections / 连接"><label class="toggle catalog-heading"><span>Connections / 连接</span><input type="checkbox" data-catalog-parent></label><div class="catalog-items">
+    <label class="toggle catalog-item"><span>Details / Fixings / Anchors / Hold-downs / 详图、固定与锚固</span><input type="checkbox" data-detail-toggle="fixing"></label>
+   </div></div>
+   <div class="catalog-group" role="group" aria-label="Checks / 检查"><label class="toggle catalog-heading"><span>Checks / 检查</span><input type="checkbox" data-catalog-parent></label><div class="catalog-items">
+    <label class="toggle catalog-item"><span>Load paths / Supports / 传力与支承</span><input type="checkbox" data-detail-toggle="supports"></label>
+    <label class="toggle catalog-item"><span>Linked calculations / 关联计算</span><input type="checkbox" data-detail-toggle="results"></label>
+    <label class="toggle catalog-item"><span>Clashes / 碰撞检查 · Not supplied / 待提供</span><input type="checkbox" disabled title="Data not supplied / 尚无对应数据"></label>
+   </div></div>
+   <div class="catalog-group" role="group" aria-label="Outputs / 输出"><label class="toggle catalog-heading"><span>Outputs / 输出</span><input type="checkbox" data-catalog-parent></label><div class="catalog-items">
+    <label class="toggle catalog-item"><span>Drawings / Schedules / 图纸与构件、连接表</span><input type="checkbox" data-detail-toggle="sources"></label>
+   </div></div>
   </nav>
   <nav id="catalog-arc" aria-label="ARC systems" hidden>
-   <details class="catalog-group"><summary>Spaces / 空间</summary>
-    <button type="button" disabled title="Data not supplied / 尚无对应数据">Rooms / Names / Areas / Uses / 房间、名称、面积与用途 · Not supplied / 待提供</button>
-   </details>
-   <details class="catalog-group"><summary>Building elements / 建筑构件</summary>
-    <button type="button" data-catalog-filter="walls" aria-pressed="false">Walls / 墙体</button>
-    <button type="button" data-catalog-filter="opening_infill windows" aria-pressed="false">Doors / Windows / Openings / 门窗与洞口</button>
-    <button type="button" data-catalog-filter="roof" aria-pressed="false">Roofs / 屋面</button>
-   </details>
-   <details class="catalog-group"><summary>Dimensions / 尺寸</summary>
-    <button type="button" data-detail-focus="design">Grids / Levels / Ceiling heights / Clearances / 轴网、标高、层高与净空</button>
-   </details>
-   <details class="catalog-group"><summary>Materials / 材料</summary>
-    <button type="button" data-detail-focus="design">Cladding / Roofing / Finishes / 围护、屋面与饰面</button>
-   </details>
-   <details class="catalog-group"><summary>Outputs / 输出</summary>
-    <button type="button" data-detail-focus="sources">Plans / Elevations / Sections / Schedules / 平立剖与门窗表</button>
-   </details>
+   <div class="catalog-group" role="group" aria-label="Spaces / 空间"><label class="toggle catalog-heading"><span>Spaces / 空间</span><input type="checkbox" data-catalog-parent></label><div class="catalog-items">
+    <label class="toggle catalog-item"><span>Rooms / Names / Areas / Uses / 房间、名称、面积与用途 · Not supplied / 待提供</span><input type="checkbox" disabled title="Data not supplied / 尚无对应数据"></label>
+   </div></div>
+   <div class="catalog-group" role="group" aria-label="Building elements / 建筑构件"><label class="toggle catalog-heading"><span>Building elements / 建筑构件</span><input type="checkbox" data-catalog-parent></label><div class="catalog-items">
+    <label class="toggle catalog-item"><span>Walls / 墙体</span><input type="checkbox" data-catalog-filter="walls"></label>
+    <label class="toggle catalog-item"><span>Doors / Windows / Openings / 门窗与洞口</span><input type="checkbox" data-catalog-filter="opening_infill windows"></label>
+    <label class="toggle catalog-item"><span>Roofs / 屋面</span><input type="checkbox" data-catalog-filter="roof"></label>
+   </div></div>
+   <div class="catalog-group" role="group" aria-label="Dimensions / 尺寸"><label class="toggle catalog-heading"><span>Dimensions / 尺寸</span><input type="checkbox" data-catalog-parent></label><div class="catalog-items">
+    <label class="toggle catalog-item"><span>Grids / Levels / Ceiling heights / Clearances / 轴网、标高、层高与净空</span><input type="checkbox" data-detail-toggle="design"></label>
+   </div></div>
+   <div class="catalog-group" role="group" aria-label="Materials / 材料"><label class="toggle catalog-heading"><span>Materials / 材料</span><input type="checkbox" data-catalog-parent></label><div class="catalog-items">
+    <label class="toggle catalog-item"><span>Cladding / Roofing / Finishes / 围护、屋面与饰面</span><input type="checkbox" data-detail-toggle="design"></label>
+   </div></div>
+   <div class="catalog-group" role="group" aria-label="Outputs / 输出"><label class="toggle catalog-heading"><span>Outputs / 输出</span><input type="checkbox" data-catalog-parent></label><div class="catalog-items">
+    <label class="toggle catalog-item"><span>Plans / Elevations / Sections / Schedules / 平立剖与门窗表</span><input type="checkbox" data-detail-toggle="sources"></label>
+   </div></div>
   </nav>
-  <button type="button" id="catalog-all" aria-pressed="true">All systems / 全部系统</button>
+  <label class="toggle catalog-all"><span>All systems <small>全部系统</small></span><input type="checkbox" id="catalog-all"></label>
   <label class="theme-label" for="wall-theme">Wall theme / 墙体主题</label><select id="wall-theme"><option value="material">Material / 材质</option><option value="fire">Fire / 防火</option><option value="load_bearing">Load bearing / 承重</option><option value="bracing">Bracing / 抗侧力</option><option value="non_bearing">Non-bearing / 非承重</option></select><p id="theme-status" class="context"></p>
   <p id="catalog-status" class="context" role="status"></p>
  </section>

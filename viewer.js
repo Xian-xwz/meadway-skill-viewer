@@ -17,8 +17,10 @@ export function install(env){
  let view=cfg.default_view||cfg.views[0].id,roof=true,terrain=false,trusses=false,selected=null,dirty=true,down=null,initialized=false,surface=cfg.ground_default||'finished';
  let wallMode='solid';const layers=Object.fromEntries(cfg.floor_layers.map(l=>[l.id,true]));
  const terrainByView={};
- let catalog=cfg.default_catalog||'arc',catalogFilter=null;
- const matchesCatalog=c=>!catalogFilter||(catalogFilter.groups.has(typeof c==='string'?c:c.group)&&(!catalogFilter.roles||catalogFilter.roles.has(c.role)));
+ let catalog=cfg.default_catalog||'arc',catalogTerrain=true;
+ const hiddenCatalogParts=new Set(),detailVisibility=new Map();
+ const matchesCatalog=c=>typeof c==='string'?catalogTerrain:!hiddenCatalogParts.has(c.id);
+ const setCatalogParts=(test,visible)=>{for(const p of parts)if(test(p.c)){if(visible)hiddenCatalogParts.delete(p.c.id);else hiddenCatalogParts.add(p.c.id);}};
  const partById=new Map(parts.map(p=>[p.c.id,p]));
  const isEnvelope=c=>cfg.framing_floors.includes(c.floor)&&['walls','opening_infill'].includes(c.group);
  const layerOf=c=>cfg.floor_layers.find(l=>(!l.groups||l.groups.includes(c.group))&&(!l.floors||l.floors.includes(c.floor)))?.id;
@@ -79,7 +81,7 @@ export function install(env){
   for(const l of cfg.floor_layers)document.getElementById('layer-'+l.id).checked=layers[l.id];
   for(const b of document.querySelectorAll('[data-wall]')){const active=b.dataset.wall===wallMode;b.classList.toggle('active',active);b.setAttribute('aria-pressed',String(active));}
   document.querySelector('#layer-hint').textContent=plan?'Floor slice / 楼层切片':cut?'Roof hidden for the section / 剖切隐藏屋面':surface==='existing'&&groundGroup.visible?'Existing ground; proposed buildings for reference / 现状地形，拟建建筑用于定位':'Toggle layers to explore / 可切换图层';
-  updateSelectionVisibility();refreshLocalModel();instances.refresh(selected,localModel?selected:null);
+  updateSelectionVisibility();updateCatalog();refreshLocalModel();instances.refresh(selected,localModel?selected:null);
   if(reset)fit(plan?[0,1,.0001]:(current.direction||[1,.72,1]));renderer.shadowMap.needsUpdate=true;dirty=true;
  }
  const groupText={walls:'Wall / 墙体',opening_infill:'Opening / 洞口示意',ground_slab:'Ground floor slab / 一层地坪',upper_slab:'Upper floor slab / 二层楼板',stairs:'Stair / 楼梯',roof:'Roof / 屋面',trusses:'Roof truss / 屋架',framing:'Wall framing / 木墙构件'};
@@ -92,7 +94,7 @@ export function install(env){
   for(const [m,color] of selectionColors){m.material.color.copy(color);m.material.emissive.setHex(0);}selectionColors.clear();
   selected=null;instances.refresh(null);document.querySelector('#pin').hidden=true;document.querySelector('#clear').hidden=true;
   document.querySelector('#details').setAttribute('aria-busy','false');
-  document.querySelector('#details').replaceChildren(el('p','Click a part of the model. 点击构件查看已有资料。','empty'));dirty=true;
+  document.querySelector('#details').replaceChildren(el('p','Click a part of the model. 点击构件查看已有资料。','empty'));updateCatalog();dirty=true;
  }
  // 同色提亮保留材质及专业主题的语义。
  function select(p){
@@ -175,7 +177,7 @@ export function install(env){
   provenance.append(el('p','包围尺寸表示模型外形，不等于设计截面。'));d.append(provenance);
   if(p.c.detail_model){const button=el('button',localModel?'Unload local model / 卸载局部模型':'Load local model / 加载局部模型','detail-model');button.onclick=()=>showLocalModel(p,button);d.append(button);}
   d.append(el('span','Selected / 已选中','chip'),el('p','','selection-visibility'));
-  updateSelectionVisibility();
+  applyDetailVisibility();updateCatalog();updateSelectionVisibility();
   document.querySelector('#clear').hidden=false;document.querySelector('#inspector').classList.add('has-selection');
   if(!matchMedia('(max-width:580px)').matches)document.querySelector('#inspector').scrollIntoView({block:'start'});dirty=true;
  }
@@ -215,26 +217,73 @@ export function install(env){
   roof=current.roof??current.kind!=='plan';trusses=current.trusses??!current.groups;terrain=terrainByView[id]??current.terrain??false;
   wallMode=current.wall_mode||'solid';applyView();
  }
- // 切专业只切换目录。筛选是独立状态，与原楼层及剖切取交集。
- const catalogButtons=[...document.querySelectorAll('[data-catalog]')],filterButtons=[...document.querySelectorAll('[data-catalog-filter]')];
+ // 同一个构件显隐集合供ST/ARC复用；重叠分类从实际集合计算全选与半选。
+ const catalogButtons=[...document.querySelectorAll('[data-catalog]')];
+ const filterInputs=[...document.querySelectorAll('[data-catalog-filter]')];
+ const detailInputs=[...document.querySelectorAll('[data-detail-toggle]')];
+ const parentInputs=[...document.querySelectorAll('[data-catalog-parent]')];
  const allSystems=document.querySelector('#catalog-all');
+ const filterTest=input=>{
+  const groups=new Set(input.dataset.catalogFilter.split(' '));
+  const roles=input.dataset.catalogRole?new Set(input.dataset.catalogRole.split(' ')):null;
+  return c=>groups.has(c.group)&&(!roles||roles.has(c.role));
+ };
+ const requestedVisible=c=>matchesCatalog(c)&&(c.group!=='roof'||roof)&&(c.group!=='trusses'||trusses);
+ function setFilter(input,visible){
+  const test=filterTest(input);setCatalogParts(test,visible);
+  const groups=input.dataset.catalogFilter.split(' ');
+  if(groups.includes('roof'))roof=visible;
+  if(groups.includes('trusses'))trusses=visible;
+  if(groups.includes('terrain')){catalogTerrain=visible;terrain=visible;}
+ }
+ function applyDetailVisibility(){
+  for(const [key,visible] of detailVisibility){const section=document.getElementById('detail-'+key);if(section)section.hidden=!visible;}
+ }
+ function aggregate(input,children){
+  const enabled=children.filter(c=>!c.disabled),count=enabled.filter(c=>c.checked).length;
+  input.disabled=!enabled.length;input.checked=Boolean(enabled.length)&&count===enabled.length&&!enabled.some(c=>c.indeterminate);
+  input.indeterminate=enabled.some(c=>c.indeterminate)||(count>0&&count<enabled.length);
+ }
  function updateCatalog(){
   for(const b of catalogButtons){const active=b.dataset.catalog===catalog;b.setAttribute('aria-pressed',String(active));document.getElementById(b.getAttribute('aria-controls')).hidden=!active;}
-  for(const b of filterButtons){const active=b===catalogFilter?.button;b.classList.toggle('active',active);b.setAttribute('aria-pressed',String(active));}
-  allSystems.setAttribute('aria-pressed',String(!catalogFilter));
-  document.querySelector('#catalog-status').textContent=catalogFilter?`Filtered / 筛选：${catalogFilter.label}`:'All systems visible where enabled / 按当前视图显示全部系统';
+  for(const input of filterInputs){
+   const test=filterTest(input),rows=parts.filter(p=>test(p.c));
+   const hasTerrain=input.dataset.catalogFilter.split(' ').includes('terrain')&&groundBoxes.length>0;
+   const values=rows.map(p=>requestedVisible(p.c));if(hasTerrain)values.push(catalogTerrain&&terrain);
+   input.disabled=!values.length;input.checked=Boolean(values.length)&&values.every(Boolean);
+   input.indeterminate=values.some(Boolean)&&!values.every(Boolean);
+   if(input.disabled)input.title='Not present in this model / 当前模型尚无对应构件';
+  }
+  for(const input of detailInputs){input.disabled=!selected||!document.getElementById('detail-'+input.dataset.detailToggle);input.checked=!input.disabled&&detailVisibility.get(input.dataset.detailToggle)!==false;input.title=input.disabled?'Select a component / 请先选择构件':'';}
+  for(const parent of parentInputs)aggregate(parent,[...parent.closest('.catalog-group').querySelectorAll('.catalog-item input')]);
+  const values=parts.map(p=>requestedVisible(p.c));if(groundBoxes.length)values.push(catalogTerrain&&terrain);
+  allSystems.checked=values.every(Boolean);allSystems.indeterminate=values.some(Boolean)&&!values.every(Boolean);
+  document.querySelector('#catalog-status').textContent='Check to show · Uncheck to hide. Current floor and wall mode still apply. 勾选显示，取消隐藏；与当前楼层、墙体模式共同控制。';
  }
+ function finishCatalogChange(){applyDetailVisibility();applyView(false);}
  for(const b of catalogButtons)b.onclick=()=>{catalog=b.dataset.catalog;updateCatalog();applyTheme();};
- for(const b of filterButtons)b.onclick=()=>{catalogFilter={button:b,groups:new Set(b.dataset.catalogFilter.split(' ')),roles:b.dataset.catalogRole?new Set(b.dataset.catalogRole.split(' ')):null,label:b.firstChild.textContent.trim()};updateCatalog();applyView(false);};
- allSystems.onclick=()=>{if(!catalogFilter)return;catalogFilter=null;updateCatalog();applyView(false);};
+ for(const input of filterInputs)input.onchange=()=>{setFilter(input,input.checked);finishCatalogChange();};
+ for(const input of detailInputs)input.onchange=()=>{detailVisibility.set(input.dataset.detailToggle,input.checked);applyDetailVisibility();updateCatalog();};
+ for(const parent of parentInputs)parent.onchange=()=>{
+  for(const input of parent.closest('.catalog-group').querySelectorAll('.catalog-item input:not(:disabled)')){
+   if(input.dataset.catalogFilter!==undefined)setFilter(input,parent.checked);
+   else if(input.dataset.detailToggle)detailVisibility.set(input.dataset.detailToggle,parent.checked);
+  }
+  finishCatalogChange();
+ };
+ allSystems.onchange=()=>{
+  const visible=allSystems.checked;setCatalogParts(()=>true,visible);catalogTerrain=visible;
+  roof=visible;trusses=visible;terrain=visible;
+  for(const input of detailInputs)detailVisibility.set(input.dataset.detailToggle,visible);
+  finishCatalogChange();
+ };
  updateCatalog();applyTheme();
  document.querySelector('#wall-theme').onchange=e=>{wallTheme=e.target.value;applyTheme();};
- for(const b of document.querySelectorAll('[data-detail-focus]'))b.onclick=()=>{const section=document.getElementById('detail-'+b.dataset.detailFocus);if(section){let parent=section.parentElement;while(parent){if(parent.tagName==='DETAILS')parent.open=true;parent=parent.parentElement;}section.scrollIntoView({block:'nearest'});}else document.querySelector('#catalog-status').textContent='Select a component to view its supplied data / 先选择构件查看对应资料';};
  for(const b of document.querySelectorAll('[data-view]'))b.onclick=()=>preset(b.dataset.view);
  for(const b of document.querySelectorAll('[data-wall]'))b.onclick=()=>{wallMode=b.dataset.wall;applyView(false);};
  for(const l of cfg.floor_layers)document.getElementById('layer-'+l.id).onchange=e=>{layers[l.id]=e.target.checked;applyView(false);};
 
- document.querySelector('#trusses').onchange=e=>{trusses=e.target.checked;applyView(false);};document.querySelector('#roof').onchange=e=>{roof=e.target.checked;applyView(false);};document.querySelector('#terrain').onchange=e=>{terrain=e.target.checked;terrainByView[view]=terrain;applyView();};
+ document.querySelector('#trusses').onchange=e=>{trusses=e.target.checked;setCatalogParts(c=>c.group==='trusses',trusses);applyView(false);};document.querySelector('#roof').onchange=e=>{roof=e.target.checked;setCatalogParts(c=>c.group==='roof',roof);applyView(false);};document.querySelector('#terrain').onchange=e=>{terrain=e.target.checked;catalogTerrain=terrain;terrainByView[view]=terrain;applyView();};
  document.querySelector('#surface').onchange=e=>{surface=e.target.value;setGroundSurface(surface);applyView(false);};
  document.querySelector('#reset').onclick=()=>applyView();document.querySelector('#clear').onclick=clearSelection;
  const activePointers=new Set();
@@ -247,6 +296,6 @@ export function install(env){
  new ResizeObserver(resize).observe(viewport);resize();preset(view);initialized=true;
  function draw(){requestAnimationFrame(draw);controls.update();if(!dirty)return;dirty=false;renderer.render(scene,camera);
   const pin=document.querySelector('#pin');if(selected){const center=selected.box.getCenter(new T.Vector3()),q=center.clone().project(camera),x=(q.x*.5+.5)*viewport.clientWidth,y=(.5-q.y*.5)*viewport.clientHeight;pin.textContent=selected.displayLabel||selected.c.id;pin.hidden=!selected.o.visible||(selected.meshes[0]?.material.clippingPlanes||[]).some(pl=>pl.distanceToPoint(center)<-1e-5)||q.z<-1||q.z>1||Math.abs(q.x)>1||Math.abs(q.y)>1;pin.style.left=Math.min(viewport.clientWidth-100,Math.max(8,x+12))+'px';pin.style.top=Math.max(8,y-24)+'px';}}
- window.viewer={state:()=>({view,surface,visibleIds:parts.filter(p=>p.o.visible).map(p=>p.c.id),catalog,wallTheme,effectiveTheme:catalog==='arc'?'material':wallTheme,wallColors:Object.fromEntries(parts.filter(p=>p.c.group==='walls').map(p=>[p.c.id,p.meshes[0].material.color.getHexString()])),visible:parts.filter(p=>p.o.visible).length,total:parts.length,wallMode,layers:{...layers},groups:Object.fromEntries([...new Set(parts.map(p=>p.c.group))].map(g=>[g,parts.filter(p=>p.c.group===g&&p.o.visible).length])),upperEnvelope:parts.filter(p=>isEnvelope(p.c)&&p.o.visible).length,framing:parts.filter(p=>p.c.group==='framing'&&p.o.visible).length,opacity:wallMode==='overlay'?.10:1,trusses:parts.filter(p=>p.c.group==='trusses'&&p.o.visible).length,terrain:groundGroup.visible,roof:parts.filter(p=>p.c.group==='roof'&&p.o.visible).length,caps:caps.children.length,selected:selected?.c.id||null,objectRefs:selected?.c.object_refs||[],detail:detailLoader.state(),selectedInstanced:selected?.meshes.some(mesh=>instances.owns(mesh))||false,instances:instances.stats(),renderCalls:renderer.info.render.calls,geometryBuffers:renderer.info.memory.geometries,camera:camera.position.toArray(),target:controls.target.toArray(),zoom:camera.zoom,geometryUnchanged:parts.every((p,i)=>p.o.matrixWorld.toArray().every((x,j)=>Math.abs(x-baseTransforms[i][j])<1e-9))}),project:id=>{const p=parts.find(p=>p.c.id===id);if(!p)return null;const m=p.meshes[0],g=m.geometry,pos=g.attributes.position,ix=g.index;let best=-1,point=new T.Vector3();for(let i=0;i<(ix?ix.count:pos.count);i+=3){const a=[0,1,2].map(j=>new T.Vector3().fromBufferAttribute(pos,ix?ix.getX(i+j):i+j));const area=a[1].clone().sub(a[0]).cross(a[2].clone().sub(a[0])).lengthSq();if(area>best){best=area;point.copy(a[0]).add(a[1]).add(a[2]).multiplyScalar(1/3);}}const q=point.applyMatrix4(m.matrixWorld).project(camera),rect=canvas.getBoundingClientRect();return [rect.left+(q.x*.5+.5)*rect.width,rect.top+(.5-q.y*.5)*rect.height];}};
+ window.viewer={state:()=>({view,surface,catalogHidden:hiddenCatalogParts.size,visibleIds:parts.filter(p=>p.o.visible).map(p=>p.c.id),catalog,wallTheme,effectiveTheme:catalog==='arc'?'material':wallTheme,wallColors:Object.fromEntries(parts.filter(p=>p.c.group==='walls').map(p=>[p.c.id,p.meshes[0].material.color.getHexString()])),visible:parts.filter(p=>p.o.visible).length,total:parts.length,wallMode,layers:{...layers},groups:Object.fromEntries([...new Set(parts.map(p=>p.c.group))].map(g=>[g,parts.filter(p=>p.c.group===g&&p.o.visible).length])),upperEnvelope:parts.filter(p=>isEnvelope(p.c)&&p.o.visible).length,framing:parts.filter(p=>p.c.group==='framing'&&p.o.visible).length,opacity:wallMode==='overlay'?.10:1,trusses:parts.filter(p=>p.c.group==='trusses'&&p.o.visible).length,terrain:groundGroup.visible,roof:parts.filter(p=>p.c.group==='roof'&&p.o.visible).length,caps:caps.children.length,selected:selected?.c.id||null,objectRefs:selected?.c.object_refs||[],detail:detailLoader.state(),selectedInstanced:selected?.meshes.some(mesh=>instances.owns(mesh))||false,instances:instances.stats(),renderCalls:renderer.info.render.calls,geometryBuffers:renderer.info.memory.geometries,camera:camera.position.toArray(),target:controls.target.toArray(),zoom:camera.zoom,geometryUnchanged:parts.every((p,i)=>p.o.matrixWorld.toArray().every((x,j)=>Math.abs(x-baseTransforms[i][j])<1e-9))}),project:id=>{const p=parts.find(p=>p.c.id===id);if(!p)return null;const m=p.meshes[0],g=m.geometry,pos=g.attributes.position,ix=g.index;let best=-1,point=new T.Vector3();for(let i=0;i<(ix?ix.count:pos.count);i+=3){const a=[0,1,2].map(j=>new T.Vector3().fromBufferAttribute(pos,ix?ix.getX(i+j):i+j));const area=a[1].clone().sub(a[0]).cross(a[2].clone().sub(a[0])).lengthSq();if(area>best){best=area;point.copy(a[0]).add(a[1]).add(a[2]).multiplyScalar(1/3);}}const q=point.applyMatrix4(m.matrixWorld).project(camera),rect=canvas.getBoundingClientRect();return [rect.left+(q.x*.5+.5)*rect.width,rect.top+(.5-q.y*.5)*rect.height];}};
  document.querySelector('#loading').hidden=true;window.ready=true;draw();
 }
