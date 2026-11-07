@@ -1,0 +1,107 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<link rel="icon" href="data:,">
+<title>Interactive building model</title><link rel="stylesheet" href="style.css">
+<script type="importmap">{"imports":{"three":"./vendor/three.module.js"}}</script></head>
+<body>
+<header><strong id="brand"></strong><span id="project-label"></span><div class="local">INTERACTIVE <small>交互模型</small></div></header>
+<main>
+<section id="viewport" aria-label="Interactive building model">
+ <div class="view-title"><span>EXPLORE THE BUILDING</span><h1 id="view-title">Whole house</h1><p id="view-zh">整屋建筑</p></div>
+ <div id="loading" role="status">Loading your model…<small>正在加载建筑与地形</small></div>
+ <div id="pin" hidden></div>
+ <div class="gestures">Drag to orbit <b>·</b> Scroll to zoom <b>·</b> Right-drag to pan<br><small>拖动旋转 · 滚轮缩放 · 右键拖动平移 · 点击查看构件</small></div>
+ <button id="reset" class="reset" title="Reset current view / 重置当前视图">↺ <span>Reset view<small>重置视角</small></span></button>
+</section>
+<aside>
+ <section class="shared"><details id="shared-controls"><summary>SHARED CONTROLS <small>共用视图、楼层与显示</small></summary>
+ <section><div class="section-label">01 / VIEW <small>视图</small></div>
+ <nav id="views" aria-label="Model views"></nav></section>
+ <section><div class="section-label">02 / LAYERS <small>显示</small></div>
+ <label class="toggle"><span>Roof <small>屋面</small></span><input id="roof" type="checkbox" checked></label>
+ <label class="toggle"><span>Trusses <small>屋架</small></span><input id="trusses" type="checkbox" checked></label>
+ <div id="floor-layers"></div>
+ <label class="toggle"><span>Terrain / 场地</span><input id="terrain" type="checkbox"></label>
+ <label for="surface">Ground surface / 场地状态</label><select id="surface"></select>
+ <div class="section-label wall-label">WALL DISPLAY <small>墙体表现</small></div>
+ <div id="wall-modes" role="group" aria-label="Upper wall display">
+ <button data-wall="solid">Solid walls<small>完整墙</small></button>
+ <button data-wall="frame">Timber framing<small>木墙架</small></button>
+ <button data-wall="overlay">Overlay<small>半透明叠加</small></button></div>
+ <p class="context" id="framing-status"></p>
+ <p class="context" id="layer-hint">Hide the roof to explore inside.<br>隐藏屋面可查看内部空间。</p></section>
+ <section class="levels" id="levels"></section>
+ </details></section>
+ <section class="catalog">
+  <div class="section-label">BROWSE <small>构件目录</small></div>
+  <div class="catalog-switch" role="group" aria-label="Discipline / 专业">
+   <button type="button" data-catalog="st" aria-controls="catalog-st" aria-pressed="true">ST · Structure<small>结构</small></button>
+   <button type="button" data-catalog="arc" aria-controls="catalog-arc" aria-pressed="false">ARC · Architecture<small>建筑</small></button>
+  </div>
+  <nav id="catalog-st" aria-label="ST systems">
+   <details class="catalog-group"><summary>Foundations / 基础</summary>
+    <button type="button" disabled title="Data not supplied / 尚无对应数据">Piles / 桩 · Not supplied / 待提供</button>
+    <button type="button" disabled title="Data not supplied / 尚无对应数据">Pad / Strip / Raft footings / 独立、条形与筏板基础 · Not supplied / 待提供</button>
+   </details>
+   <details class="catalog-group"><summary>Floors / 楼面</summary>
+    <button type="button" data-catalog-filter="ground_slab upper_slab slabs" aria-pressed="false">Slabs / 楼板</button>
+    <button type="button" disabled title="Data not supplied / 尚无对应数据">Joists / Bearers / 楼面搁栅与主梁 · Not supplied / 待提供</button>
+    <button type="button" disabled title="Data not supplied / 尚无对应数据">Floor openings / 楼面洞口 · Not supplied / 待提供</button>
+   </details>
+   <details class="catalog-group"><summary>Walls / 墙体</summary>
+    <button type="button" data-catalog-filter="walls framing" aria-pressed="false">Walls & framing / 墙体与墙架</button>
+    <button type="button" data-catalog-filter="framing" aria-pressed="false" data-catalog-role="stud king_stud jack_stud">Posts / 柱</button>
+    <button type="button" data-catalog-filter="framing" aria-pressed="false" data-catalog-role="lintel head_trimmer">Lintels / Headers · 过梁与上横档</button>
+    <button type="button" data-detail-focus="wall">Bracing / 抗侧力</button>
+   </details>
+   <details class="catalog-group"><summary>Roofs / 屋盖</summary>
+    <button type="button" data-catalog-filter="trusses" aria-pressed="false">Trusses / 屋架</button>
+    <button type="button" disabled title="Data not supplied / 尚无对应数据">Rafters / Beams / 椽与屋面梁 · Not supplied / 待提供</button>
+    <button type="button" disabled title="Data not supplied / 尚无对应数据">Roof bracing / 屋面抗侧力 · Not supplied / 待提供</button>
+   </details>
+   <details class="catalog-group"><summary>Members / 构件</summary>
+    <button type="button" data-detail-focus="design">IDs / Sizes / Materials / Grades / Spans / 编号、尺寸、材料、等级与跨度</button>
+   </details>
+   <details class="catalog-group"><summary>Connections / 连接</summary>
+    <button type="button" data-detail-focus="fixing">Details / Fixings / Anchors / Hold-downs / 详图、固定与锚固</button>
+   </details>
+   <details class="catalog-group"><summary>Checks / 检查</summary>
+    <button type="button" data-detail-focus="supports">Load paths / Supports / 传力与支承</button>
+    <button type="button" data-detail-focus="results">Linked calculations / 关联计算</button>
+    <button type="button" disabled title="Data not supplied / 尚无对应数据">Clashes / 碰撞检查 · Not supplied / 待提供</button>
+   </details>
+   <details class="catalog-group"><summary>Outputs / 输出</summary>
+    <button type="button" data-detail-focus="sources">Drawings / Schedules / 图纸与构件、连接表</button>
+   </details>
+  </nav>
+  <nav id="catalog-arc" aria-label="ARC systems" hidden>
+   <details class="catalog-group"><summary>Spaces / 空间</summary>
+    <button type="button" disabled title="Data not supplied / 尚无对应数据">Rooms / Names / Areas / Uses / 房间、名称、面积与用途 · Not supplied / 待提供</button>
+   </details>
+   <details class="catalog-group"><summary>Building elements / 建筑构件</summary>
+    <button type="button" data-catalog-filter="walls" aria-pressed="false">Walls / 墙体</button>
+    <button type="button" data-catalog-filter="opening_infill windows" aria-pressed="false">Doors / Windows / Openings / 门窗与洞口</button>
+    <button type="button" data-catalog-filter="roof" aria-pressed="false">Roofs / 屋面</button>
+   </details>
+   <details class="catalog-group"><summary>Dimensions / 尺寸</summary>
+    <button type="button" data-detail-focus="design">Grids / Levels / Ceiling heights / Clearances / 轴网、标高、层高与净空</button>
+   </details>
+   <details class="catalog-group"><summary>Materials / 材料</summary>
+    <button type="button" data-detail-focus="design">Cladding / Roofing / Finishes / 围护、屋面与饰面</button>
+   </details>
+   <details class="catalog-group"><summary>Outputs / 输出</summary>
+    <button type="button" data-detail-focus="sources">Plans / Elevations / Sections / Schedules / 平立剖与门窗表</button>
+   </details>
+  </nav>
+  <button type="button" id="catalog-all" aria-pressed="true">All systems / 全部系统</button>
+  <label class="theme-label" for="wall-theme">Wall theme / 墙体主题</label><select id="wall-theme"><option value="material">Material / 材质</option><option value="fire">Fire / 防火</option><option value="load_bearing">Load bearing / 承重</option><option value="bracing">Bracing / 抗侧力</option><option value="non_bearing">Non-bearing / 非承重</option></select><p id="theme-status" class="context"></p>
+  <p id="catalog-status" class="context" role="status"></p>
+ </section>
+ <section id="inspector" aria-live="polite"><div class="section-label">03 / COMPONENT <small>构件信息</small></div><button id="clear" hidden>Close details / 关闭详情</button><div id="details"><p class="empty">Click a part of the model.<br><small>点击墙体、楼板、楼梯或屋面，查看已有资料。</small></p></div></section>
+</aside>
+</main>
+<dialog id="source-dialog" aria-labelledby="source-title"><button id="source-close" type="button">Close / 关闭</button><h2 id="source-title"></h2><div id="source-content"></div></dialog>
+<footer><div id="model-note"></div><small id="model-note-zh"></small></footer>
+<script>
+const fail=e=>{document.querySelector('#loading').hidden=false;document.querySelector('#loading').textContent='Unable to load model / 模型加载失败：'+(e.reason?.message||e.message||'Please reload / 请刷新页面');};window.addEventListener('error',fail);window.addEventListener('unhandledrejection',fail);
+</script><script type="module" src="engine.js"></script></body></html>
